@@ -71,6 +71,51 @@ struct BoardClient: Sendable {
         try await sendExpectingNoContent("DELETE", "api/memories/\(memoryID)")
     }
 
+    // MARK: Conversations
+
+    func agents() async throws -> [Agent] {
+        try await send("GET", "api/agents")
+    }
+
+    func threads() async throws -> [ThreadSummary] {
+        try await send("GET", "api/threads")
+    }
+
+    func thread(_ id: String) async throws -> ThreadDetail {
+        try await send("GET", "api/threads/\(id)")
+    }
+
+    /// `to: nil` leaves the request open to whichever agent picks it up first.
+    func startThread(body: String, to agent: String?) async throws -> StartedThread {
+        var payload = ["body": body]
+        if let agent { payload["to"] = agent }
+        return try await send("POST", "api/threads", body: payload)
+    }
+
+    /// `dependsOn` hands an earlier task's result to this request: the hand-off.
+    func sendMessage(threadID: String, body: String, to agent: String?, dependsOn: String?) async throws -> BoardTask {
+        var payload = ["body": body]
+        if let agent { payload["to"] = agent }
+        if let dependsOn { payload["depends_on"] = dependsOn }
+        return try await send("POST", "api/threads/\(threadID)/messages", body: payload)
+    }
+
+    func markRead(threadID: String) async throws {
+        try await sendExpectingNoContent("POST", "api/threads/\(threadID)/read")
+    }
+
+    func reply(taskID: String, body: String) async throws -> BoardTask {
+        try await send("POST", "api/tasks/\(taskID)/reply", body: ["body": body])
+    }
+
+    func reassign(taskID: String, to agent: String?) async throws -> BoardTask {
+        try await send("POST", "api/tasks/\(taskID)/reassign", body: agent.map { ["to": $0] } ?? [:])
+    }
+
+    func cancel(taskID: String) async throws -> BoardTask {
+        try await send("POST", "api/tasks/\(taskID)/cancel", body: [:])
+    }
+
     // MARK: - Transport
 
     private func send<T: Decodable>(

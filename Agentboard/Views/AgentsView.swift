@@ -14,14 +14,12 @@ struct AgentsView: View {
                 Section {
                     ForEach(store.board?.agents ?? []) { agent in
                         HStack {
-                            Image(systemName: "person.crop.circle.fill")
-                                .font(.title2)
-                                .foregroundStyle(.tint)
+                            AgentAvatar(name: agent.name, size: 32)
                             VStack(alignment: .leading) {
                                 Text(agent.name).font(.headline)
-                                Text("Connected \(agent.createdAt, format: .relative(presentation: .named))")
+                                Text(Presence.summary(agent))
                                     .font(.caption)
-                                    .foregroundStyle(.secondary)
+                                    .foregroundStyle(Presence.isAsleep(agent) ? .orange : .secondary)
                             }
                         }
                         .swipeActions {

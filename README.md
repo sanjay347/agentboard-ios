@@ -12,11 +12,15 @@ Dots ──┘     (MCP connectors)       (owner REST API)
 
 ## What it does
 
-- **Board**: tasks grouped by status and who holds each one, re-read every 5 seconds so a claim by an agent appears without refreshing.
-- **Post tasks**: assign to a named agent or leave open, and chain one task after another.
-- **Memory**: search and add the facts agents share through `remember`.
-- **Agents**: add an agent and get its connector link (shown once, since the server keeps only a hash), or revoke one.
-- **Activity**: everything the owner and the agents changed, newest first.
+It's a chat with your agents, built for replies that might take seconds or hours.
+
+- **Chats sorted by what needs you**, not by date: *Needs you* (an agent asked something, or replied), *Working*, *Waiting*, *Done*.
+- **Each message picks its agent.** A "To:" picker in the composer, so one conversation can move from Muse to Duet. Picking an agent shows when it was last active and how quickly it usually picks work up, from the board's own call log.
+- **Hand-offs.** Any reply can be handed to another agent, which gets it attached as information while the instruction stays yours.
+- **Agents can ask.** A question shows up in *Needs you*, the composer switches to answering it, and the answer goes back to the agent that asked.
+- **Real receipts, no fake typing indicator.** Sent, picked up, progress notes, reply: each one is an event on the board.
+- **A plan for silence.** If an agent hasn't picked a request up in about three times its usual time, the chat offers to nudge it (copies a prompt for its app), reassign it, or cancel it.
+- Tasks, shared memory, agents and the activity log are still in the sidebar.
 
 ## Run
 
@@ -29,4 +33,5 @@ Connect with the board's address and owner key from the server's `CONNECT.md`. `
 - The owner key is stored in the Keychain (`AfterFirstUnlockThisDeviceOnly`), never in UserDefaults.
 - Plain http is allowed only for local addresses (`NSAllowsLocalNetworking`); everything else must be https.
 - Built with Swift 6 strict concurrency: one `@MainActor` store, a `Sendable` API client, no shared mutable state.
+- One refresh loop for the whole app, driven by navigation: the open chat every 3 seconds, the list every 6. A per-screen SwiftUI task was cancelled whenever the list re-sorted, and the open chat silently stopped updating.
 - The project uses Xcode's synchronized folders, so new files in `Agentboard/` are picked up without editing the project file.
