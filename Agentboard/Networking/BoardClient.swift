@@ -71,6 +71,13 @@ struct BoardClient: Sendable {
         try await sendExpectingNoContent("DELETE", "api/memories/\(memoryID)")
     }
 
+    /// One row read on the server: changes whenever anything visible on the board changes.
+    func version() async throws -> Int {
+        struct Version: Decodable { let version: Int }
+        let v: Version = try await send("GET", "api/version")
+        return v.version
+    }
+
     // MARK: Conversations
 
     func agents() async throws -> [Agent] {

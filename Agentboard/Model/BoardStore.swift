@@ -41,6 +41,7 @@ final class BoardStore {
         ConnectionStore.clear()
         connection = nil
         board = nil
+        knownVersion = nil
         focusedThreadID = nil
         threads = []
         threadDetails = [:]
@@ -128,16 +129,39 @@ final class BoardStore {
         if let threadID { Task { await refreshThread(threadID) } }
     }
 
-    /// The app's one refresh loop: the open conversation every 3 seconds, the
-    /// board and the chat list every 6, so an agent's reply shows up without
-    /// pulling to refresh.
+    /// The app's one refresh loop. Every 3 seconds it asks the board for its
+    /// version, one row read, and downloads the board, the chat list and the
+    /// open conversation only when that number changed. Downloading everything
+    /// every few seconds would use up the free database's daily reads within
+    /// hours. A full refresh still runs every minute, for agents' presence.
     func keepFresh() async {
-        var tick = 0
+        var lastFull = Date.distantPast
         while !Task.isCancelled {
-            if let id = focusedThreadID { await refreshThread(id) }
-            if tick % 2 == 0 { await refresh() }
-            tick += 1
+            let changed = await boardChanged()
+            if changed || Date.now.timeIntervalSince(lastFull) > 60 {
+                if let id = focusedThreadID { await refreshThread(id) }
+                await refresh()
+                lastFull = .now
+            }
             try? await Task.sleep(for: .seconds(3))
+        }
+    }
+
+    private var knownVersion: Int?
+
+    /// True when the board changed since the last look, or when the server is
+    /// too old to say (then the app refreshes every time, as it used to).
+    private func boardChanged() async -> Bool {
+        guard let client else { return false }
+        do {
+            let version = try await client.version()
+            defer { knownVersion = version }
+            return version != knownVersion
+        } catch BoardError.rejected {
+            return true // no /api/version on this server
+        } catch {
+            lastError = error.localizedDescription
+            return false
         }
     }
 
