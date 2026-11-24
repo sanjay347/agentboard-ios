@@ -8,6 +8,7 @@ enum TaskStatus: String, Codable, CaseIterable, Sendable, Identifiable {
     case inProgress = "in_progress"
     case blocked
     case done
+    case cancelled
 
     var id: String { rawValue }
 
@@ -17,6 +18,7 @@ enum TaskStatus: String, Codable, CaseIterable, Sendable, Identifiable {
         case .inProgress: "In progress"
         case .blocked: "Blocked"
         case .done: "Done"
+        case .cancelled: "Cancelled"
         }
     }
 
@@ -26,6 +28,7 @@ enum TaskStatus: String, Codable, CaseIterable, Sendable, Identifiable {
         case .inProgress: "circle.lefthalf.filled"
         case .blocked: "exclamationmark.circle"
         case .done: "checkmark.circle.fill"
+        case .cancelled: "xmark.circle"
         }
     }
 }
@@ -42,11 +45,19 @@ struct BoardTask: Codable, Identifiable, Hashable, Sendable {
     let dependsOn: String?
     let result: String?
     let note: String?
+    // Optional so the app still reads boards running an older server.
+    let threadId: String?
+    let openedAt: Date?
+    let claimedAt: Date?
     let createdAt: Date
     let updatedAt: Date
 
+    /// The agent this task is with: whoever claimed it, else whoever it was sent to.
+    var agent: String? { claimedBy ?? assignedTo }
+
     /// Who the task is with, in the same words the web dashboard uses.
     var holder: String {
+        if status == .cancelled { return "cancelled" }
         if status == .done, let claimedBy { return "done by \(claimedBy)" }
         if let claimedBy { return "\(claimedBy) is on it" }
         if let assignedTo { return "for \(assignedTo)" }
@@ -58,6 +69,11 @@ struct Agent: Codable, Identifiable, Hashable, Sendable {
     let id: String
     let name: String
     let createdAt: Date
+    /// When the agent last called any tool on the board.
+    let lastSeen: Date?
+    /// Median seconds from a task becoming available to this agent claiming it.
+    let typicalPickupSeconds: Int?
+    let pickups: Int?
 }
 
 struct Memory: Codable, Identifiable, Hashable, Sendable {
