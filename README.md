@@ -33,5 +33,6 @@ Connect with the board's address and owner key from the server's `CONNECT.md`. `
 - The owner key is stored in the Keychain (`AfterFirstUnlockThisDeviceOnly`), never in UserDefaults.
 - Plain http is allowed only for local addresses (`NSAllowsLocalNetworking`); everything else must be https.
 - Built with Swift 6 strict concurrency: one `@MainActor` store, a `Sendable` API client, no shared mutable state.
-- One refresh loop for the whole app, driven by navigation: the open chat every 3 seconds, the list every 6. A per-screen SwiftUI task was cancelled whenever the list re-sorted, and the open chat silently stopped updating.
+- One refresh loop for the whole app. Every 3 seconds it asks the board for its version number (one row read on the server) and downloads the open chat, the list and the board only when that number changed, plus once a minute for agents' last-seen times. That cut full downloads by 93% compared with refreshing everything on a timer.
+- The open chat is chosen by navigation, not by the chat screen itself: a per-screen SwiftUI task was cancelled whenever the list re-sorted, and the open chat silently stopped updating.
 - The project uses Xcode's synchronized folders, so new files in `Agentboard/` are picked up without editing the project file.
